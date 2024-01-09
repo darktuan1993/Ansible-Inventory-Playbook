@@ -1,0 +1,21 @@
+---
+postgresql_user: huynn
+postgresql_password: "Huynn@9890#!"
+postgresql_db_name: test_postgresql_db
+postgresql_super_user: postgres
+postgresql_super_password: "postgres"
+
+mysql_root_password: "Huynn@9890#!"
+mysql_databases: test_mysql_db
+#  - name: test_mysql_db
+mysql_user: huynn
+#  - name: huynn
+#    host: "%"
+#    password: 123123
+#    priv: "huynn.*:ALL"
+mysql_password: "Huynn@9890#!"
+password_validation_policy: 1
+database_service_to_remove : postgresql
+
+ansible_user: ""
+path_sshkey_rsa_pub: "~/.ssh/id_rsa.pub"

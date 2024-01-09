@@ -1,0 +1,208 @@
+---
+- name: Install Postgresql
+  hosts: server_test
+  gather_facts: true
+  become: true
+  vars_files:
+      - vars.yml
+
+  handlers:
+    - name: Restart Postgresql
+      systemd:
+        name: postgresql
+        state: restarted
+
+    - name: Reload Postgresql
+      systemd:
+        name: postgresql
+        state: reloaded
+
+    - name: Start Postgresql
+      systemd:
+        name: postgresql
+        state: started
+
+    - name: Stop Postgresql
+      systemd:
+        name: postgresql
+        state: stopped
+
+    - name: Enable Postgresql
+      systemd:
+        name: postgresql
+        enabled: yes
+
+  pre_tasks:
+      # - name: Add pgdg repo to sources.list.d
+      #   lineinfile:
+      #     path: /etc/apt/sources.list.d/pgdg.list
+      #     line: "deb http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+      #     create: true
+
+      # - name: Download PostgreSQL key and add it to system keyring
+      #   apt_key:
+      #     url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+      #     state: present
+
+      - name: Update apt cache
+        apt:
+          update_cache: yes
+          force_apt_get: yes
+          cache_valid_time: 3600
+      
+      - name: Upgrade all packages on servers
+        apt:
+          upgrade: dist
+          force_apt_get: yes
+
+      - name: Install required packages
+        apt:
+          name:
+            - wget
+            - python3-psycopg2
+            - acl
+          state: latest
+      
+      - name: Set up Postgres 16 repo
+        command: |
+          echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+
+      - name: Install postgresql
+        apt:
+          name: postgresql-16
+          update_cache: yes
+        notify:
+          - Enable Postgresql
+
+  tasks:
+      # - name: "Find out if PostgreSQL is initialized"
+      #   ansible.builtin.stat:
+      #     path: "/var/lib/pgsql/data/pg_hba.conf"
+      #   register: postgres_data
+
+      # - name: "Initialize PostgreSQL"
+      #   shell: "postgresql-14-setup initdb"
+      #   when: not postgres_data.stat.exists
+
+      # - name: "Start and enable services"
+      #   service: "name={{ item }} state=started enabled=yes"
+      #   with_items:
+      #     - postgresql-14
+
+      - name: Ensure PostgreSQL is listening on *
+        lineinfile:
+          dest: /etc/postgresql/16/main/postgresql.conf
+          regexp: '^listen_addresses\s*='
+          line: "listen_addresses='*'"
+          state: present
+        # notify: Restart Postgresql
+
+      - name: Add new configuration to "pg_hba.conf"
+        blockinfile:
+          dest: /etc/postgresql/16/main/pg_hba.conf
+          block: |
+            host    all             all             0.0.0.0/0                md5
+            host    all             all             ::/0                     md5
+        # notify: Restart Postgresql
+
+      - name: Change peer identification to trust
+        shell: /bin/sed -i '/^local/s/peer/trust/' /etc/postgresql/16/main/pg_hba.conf
+        # notify: Restart Postgresql
+
+      - name: Allow peer authentication for the postgres user
+        shell: echo 'host all all 0.0.0.0/0 trust' >> /etc/postgresql/16/main/pg_hba.conf
+        # notify: Restart postgres
+
+      - name: Reload PostgreSQL configuration
+        shell: systemctl reload postgresql
+
+      - name: Set new password for postgres superuser
+        postgresql_user:
+          db: postgres
+          name: "{{ postgresql_super_user }}"
+          password: "{{ postgresql_super_password }}"
+          encrypted: yes
+
+      - name: Remove the added line for peer authentication
+        shell: sed -i '$d' /etc/postgresql/16/main/pg_hba.conf
+        notify: Restart Postgresql
+
+#==================================== Create database,user ====================================
+
+      - name: Check if app database exists
+        postgresql_db:
+          name: "{{ postgresql_db_name_gitlab }}"
+          login_user: "{{ postgresql_super_user_gitlab }}"
+          login_password: "{{ postgresql_super_password_gitlab }}"
+        register: db_check
+
+      - name: "Create app database if not exists"
+        postgresql_db:
+          state: present
+          name: "{{ postgresql_db_name_gitlab }}"
+          login_user: "{{ postgresql_super_user_gitlab }}"
+          login_password: "{{ postgresql_super_password_gitlab }}"
+        when: db_check.changed == false
+
+      - name: "Create db user"
+        become: yes
+        become_user: postgres
+        postgresql_user:
+          name: "{{ postgresql_user_gitlab }}"
+          password: "{{ postgresql_password_gitlab }}"
+          role_attr_flags: CREATEDB,SUPERUSER,CREATEROLE
+          encrypted: yes
+          state: present
+
+
+      - name: "Grant db user access to app db"
+        postgresql_privs:
+          type: database
+          database: "{{ postgresql_db_name_gitlab }}"
+          roles: "{{ postgresql_user_gitlab }}"
+          grant_option: no
+          privs: all
+        become: yes
+        become_user: postgres
+
+      
+      # - name: Allow md5 connection for the db user in pg_hba.conf
+      #   postgresql_pg_hba:
+      #     dest: "/var/lib/pgsql/14/data/pg_hba.conf"
+      #     contype: host
+      #     databases: all
+      #     method: md5
+      #     users: "{{ postgresql_user }}"
+      #     create: true
+      #   notify: restart postgres
+
+  
+      # - name: Add trust connection for the db user in pg_hba.conf
+      #   blockinfile:
+      #     dest: "/var/lib/pgsql/14/data/pg_hba.conf"
+      #     insertafter: "# TYPE  DATABASE        USER            ADDRESS                 METHOD"
+      #     block: |
+      #           host   all             all                trust
+      #   notify: restart postgres
+
+
+#==================================== Migrate data ====================================
+#       - name: "Check if SQL script file exists"
+#         stat:
+#           path: "/home/isofh/migration.sql"
+#         register: sql_script_exists
+
+#       - name: "Load SQL script into a variable"
+#         set_fact:
+#           migration_sql: "{{ lookup('file', '/home/isofh/migration.sql') }}"
+#         when: sql_script_exists.stat.exists
+
+#       - name: "Execute script from variable"
+#         become_user: postgres
+# #          command: "psql {{ postgresql_db_name }} -c {{ migration_sql }}"
+#         shell: psql {{ postgresql_db_name }} < {{ migration_sql }}
+#         register: sql_response_variable
+#         when: sql_script_exists.stat.exists
+
+
