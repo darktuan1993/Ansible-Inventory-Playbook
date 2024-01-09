@@ -2,8 +2,8 @@
 # postgresql_user: huynn
 # postgresql_password: "Huynn@9890#!"
 # postgresql_db_name: test_postgresql_db
-# postgresql_super_user: postgres
-# postgresql_super_password: "postgres"
+postgresql_super_user: postgres
+postgresql_super_password: "postgres"
 
 postgresql_user_gitlab: huynn
 postgresql_password_gitlab: "Huynn@9890#!"
