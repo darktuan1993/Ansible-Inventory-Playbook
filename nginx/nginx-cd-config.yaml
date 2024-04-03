@@ -1,11 +1,12 @@
 ---
 - hosts: server_nginx
   tasks:
-    - name: Print message
-      debug:
-        msg: Hello Ansible World
-
     - name: Verify Nginx config
       become: yes
       command: nginx -t
       changed_when: false
+
+    - name: Pull new config
+      become: yes
+      command: "cd /etc/nginx/vhost && git pull"
+      changed_when: false    
