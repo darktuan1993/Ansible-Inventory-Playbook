@@ -16,7 +16,7 @@
     - name: Verify Nginx config
       become: yes
       shell: nginx -t
-      changed_when: true
+      changed_when: false
       register: verify_nginx
 
     - debug:
