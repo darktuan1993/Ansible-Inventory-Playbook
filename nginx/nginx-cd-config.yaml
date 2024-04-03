@@ -13,7 +13,7 @@
     - debug:
         var: git_pull_output.stdout_lines
 
-    - name: Verify Nginx config
+    - name: Xác minh config nginx
       become: yes
       shell: nginx -t
       changed_when: false
@@ -22,7 +22,7 @@
     - debug:
         msg: "{{ verify_nginx.stderr_lines  }}"
 
-    - name: Reload config
+    - name: Reload lại config
       become: yes
       command: nginx -s reload
       changed_when: true      
