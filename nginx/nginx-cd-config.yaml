@@ -20,7 +20,7 @@
       register: verify_nginx
 
     - debug:
-        msg: "{{ verify_nginx.stdout_lines }}"
+        msg: "{{ verify_nginx.stderr_lines  }}"
 
     - name: Reload config
       become: yes
