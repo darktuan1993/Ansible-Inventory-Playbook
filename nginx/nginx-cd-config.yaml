@@ -15,7 +15,7 @@
 
     - name: Verify Nginx config
       become: yes
-      command: nginx -t
+      shell: nginx -t
       changed_when: false
       register: verify_nginx
 
