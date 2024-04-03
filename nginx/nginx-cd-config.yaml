@@ -1,11 +1,6 @@
 ---
 - hosts: server_nginx
   tasks:
-    - name: Verify Nginx config
-      become: yes
-      command: nginx -t
-      changed_when: false
-
     - name: Pull latest configuration
       become: yes
       shell: |
@@ -17,3 +12,13 @@
 
     - debug:
         var: git_pull_output.stdout_lines
+
+    - name: Verify Nginx config
+      become: yes
+      command: nginx -t
+      changed_when: false
+
+    - name: Reload config
+      become: yes
+      command: nginx -s reload
+      changed_when: true      
