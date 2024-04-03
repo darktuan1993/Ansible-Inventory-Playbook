@@ -1,0 +1,4 @@
+---
+- hosts: server_nginx
+  tasks:
+    - name: CI/CD Nginx Config
