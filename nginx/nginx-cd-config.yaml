@@ -5,5 +5,7 @@
       debug:
         msg: Hello Ansible World
 
-    - name: Chạy lệnh kiểm tra cấu hình của Nginx
+    - name: Verify Nginx config
+      become: yes
       command: nginx -t
+      changed_when: false
