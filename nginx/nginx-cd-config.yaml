@@ -17,6 +17,10 @@
       become: yes
       command: nginx -t
       changed_when: false
+      register: verify_nginx
+
+    - debug:
+        var: verify_nginx.stdout_lines
 
     - name: Reload config
       become: yes
