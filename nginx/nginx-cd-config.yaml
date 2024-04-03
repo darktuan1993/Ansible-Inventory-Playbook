@@ -7,9 +7,3 @@
 
     - name: Chạy lệnh kiểm tra cấu hình của Nginx
       command: nginx -t
-      register: nginx_test_output
-      ignore_errors: yes
-
-    - name: Hiển thị kết quả kiểm tra
-      debug:
-        var: nginx_test_output.stdout_lines
