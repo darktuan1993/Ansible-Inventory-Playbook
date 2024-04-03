@@ -6,7 +6,7 @@
       command: nginx -t
       changed_when: false
 
-    - name: Pull new config
+    - name: Pull latest configuration
       become: yes
       command: "cd /etc/nginx/vhost && git pull"
-      changed_when: false    
+      changed_when: true
