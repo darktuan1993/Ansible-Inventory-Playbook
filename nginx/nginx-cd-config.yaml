@@ -13,3 +13,7 @@
         git pull
       args:
         chdir: /etc/nginx/vhost
+      register: git_pull_output
+
+    - debug:
+        var: git_pull_output.stdout_lines
