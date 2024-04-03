@@ -8,5 +8,8 @@
 
     - name: Pull latest configuration
       become: yes
-      command: "cd /etc/nginx/vhost && git pull"
-      changed_when: true
+      shell: |
+        cd /etc/nginx/vhost
+        git pull
+      args:
+        chdir: /etc/nginx/vhost
